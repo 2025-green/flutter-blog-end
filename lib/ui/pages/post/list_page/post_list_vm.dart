@@ -19,6 +19,26 @@ class PostListVM extends Notifier<PostListModel?> {
     return null;
   }
 
+  Future<void> write(String title, String content) async {
+    // 1. 레포지토리에 함수 호출
+    Map<String, dynamic> body = await PostRepository().write(title, content);
+    if (!body["success"]) {
+      ScaffoldMessenger.of(mContext!).showSnackBar(
+        SnackBar(content: Text("게시글 쓰기 실패 : ${body["errorMessage"]}")),
+      );
+      return;
+    }
+    // 2. 파싱
+    Post post = Post.fromMap(body["response"]);
+
+    // 3. List 상태 갱신
+    List<Post> nextPosts = [post, ...state!.posts];
+    state = state!.copyWith(posts: nextPosts);
+
+    // 4. 글쓰기 화면 PoP
+    Navigator.pop(mContext);
+  }
+
   void notifyDeleteOne(int postId) {
     PostListModel model = state!;
 
@@ -37,6 +57,18 @@ class PostListVM extends Notifier<PostListModel?> {
     }
 
     state = PostListModel.fromMap(body["response"]);
+  }
+
+  void notifyUpdate(Post post) {
+    List<Post> nextPosts = state!.posts.map((p) {
+      if (p.id == post.id) {
+        return post;
+      } else {
+        return p;
+      }
+    }).toList();
+
+    state = state!.copyWith(posts: nextPosts);
   }
 }
 
